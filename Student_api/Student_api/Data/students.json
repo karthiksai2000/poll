@@ -1,24 +1,4 @@
 [
-  {
-    "id": 1,
-    "name": "karthik sai ",
-    "age": 20,
-    "major": "Computer Science"
-  },
-  {
-    "id": 2,
-    "name": "ambati sai",
-    "age": 28,
-    "major": "Computer Science"
-  },
-  {
-    "id": 3,
-    "name": "reddy loves chow"
-  },
-  {
-    "id": 4,
-    "name": "karthik reddy",
-    "course": "btech",
-    "year": 4
-  }
+  { "id": 1, "name": "Laptop", "price": 50000 },
+  { "id": 2, "name": "Mouse", "price": 500 }
 ]
