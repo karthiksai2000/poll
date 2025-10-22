@@ -30,14 +30,14 @@
 // 1. Import modules
 const express = require('express');
 const path = require('path'); // for static path handling
-const cors = require('cors'); // <-- CORS
+
 const os = require('os');     // <-- OS info
 
 // 2. Initialize app
 const app = express();
 
 // 3. Middleware
-app.use(cors());             // enable CORS
+         // enable CORS
 app.use(express.json());     // parse JSON request body
 
 // Log every request method and URL
