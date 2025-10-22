@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Student Management</title>
+  <title>Product Management</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -22,7 +22,7 @@
     }
 
     li {
-      margin: 8px 0;
+      margin: 4px 0;
       padding: 8px;
       background: #f9f9f9;
       border: 1px solid #ddd;
@@ -66,48 +66,42 @@
   </style>
 </head>
 <body>
-  <h1>Students List</h1>
-  <ul id="student-list"></ul>
+  <h1>Products List</h1>
+  <ul id="product-list"></ul>
 
-  <h2>Add Student</h2>
-  <form id="studentForm" novalidate>
+  <h2>Add Product</h2>
+  <form id="productForm" novalidate>
     <div>
-      <input type="text" id="name" placeholder="Name" required />
+      <input type="text" id="name" placeholder="Product Name" required />
       <div id="name-error" class="error-message"></div>
     </div>
     <div>
-      <input type="text" id="course" placeholder="Course" required />
-      <div id="course-error" class="error-message"></div>
+      <input type="number" id="price" placeholder="Price" required min="1" />
+      <div id="price-error" class="error-message"></div>
     </div>
-    <div>
-      <input type="number" id="year" placeholder="Year" required min="1" max="6" />
-      <div id="year-error" class="error-message"></div>
-    </div>
-    <button type="submit">Add Student</button>
+    <button type="submit">Add Product</button>
   </form>
 
   <script>
-    const API_URL = 'http://localhost:3000/students';
+    const API_URL = '/products'; // Relative path for live server
 
-    // Fetch and display students
-    async function fetchStudents() {
+    async function fetchProducts() {
       try {
         const response = await fetch(API_URL);
-        const students = await response.json();
-        const studentList = document.getElementById('student-list');
-        studentList.innerHTML = '';
+        const products = await response.json();
+        const productList = document.getElementById('product-list');
+        productList.innerHTML = '';
 
-        students.forEach(student => {
+        products.forEach(product => {
           const li = document.createElement('li');
-          li.textContent = `ID: ${student.id}, Name: ${student.name}, Course: ${student.course}, Year: ${student.year}`;
-          studentList.appendChild(li);
+          li.textContent = `ID: ${product.id}, Name: ${product.name}, Price: ₹${product.price}`;
+          productList.appendChild(li);
         });
       } catch (error) {
-        console.error('Error fetching students:', error);
+        console.error('Error fetching products:', error);
       }
     }
 
-    // Validate individual input field and show error message
     function validateField(input, errorDiv, customValidationFn = null) {
       errorDiv.textContent = '';
 
@@ -126,61 +120,50 @@
       return true;
     }
 
-    // Handle form submission
-    document.getElementById('studentForm').addEventListener('submit', async function (event) {
+    document.getElementById('productForm').addEventListener('submit', async function (event) {
       event.preventDefault();
 
       const nameInput = document.getElementById('name');
-      const courseInput = document.getElementById('course');
-      const yearInput = document.getElementById('year');
+      const priceInput = document.getElementById('price');
 
       const nameError = document.getElementById('name-error');
-      const courseError = document.getElementById('course-error');
-      const yearError = document.getElementById('year-error');
+      const priceError = document.getElementById('price-error');
 
-      // Validate all fields
       const validName = validateField(nameInput, nameError);
-      const validCourse = validateField(courseInput, courseError);
-      const validYear = validateField(yearInput, yearError, value => {
-        const yearNum = Number(value);
-        if (isNaN(yearNum) || yearNum < 1 || yearNum > 6) {
-          return 'Year must be a number between 1 and 6.';
+      const validPrice = validateField(priceInput, priceError, value => {
+        if (isNaN(value) || Number(value) <= 0) {
+          return 'Price must be a positive number.';
         }
         return null;
       });
 
-      if (!validName || !validCourse || !validYear) {
-        return; // Stop submission if invalid
-      }
+      if (!validName || !validPrice) return;
 
-      // Prepare data
-      const newStudent = {
+      const newProduct = {
         name: nameInput.value.trim(),
-        course: courseInput.value.trim(),
-        year: parseInt(yearInput.value, 10)
+        price: Number(priceInput.value)
       };
 
       try {
         const response = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newStudent)
+          body: JSON.stringify(newProduct)
         });
 
         if (response.ok) {
-          alert('Student added successfully!');
+          alert('Product added successfully!');
           this.reset();
-          fetchStudents(); // Refresh list
+          fetchProducts();
         } else {
-          alert('Failed to add student.');
+          alert('Failed to add product.');
         }
       } catch (error) {
-        console.error('Error adding student:', error);
+        console.error('Error adding product:', error);
       }
     });
 
-    // Load students on page load
-    fetchStudents();
+    fetchProducts();
   </script>
 </body>
 </html>
