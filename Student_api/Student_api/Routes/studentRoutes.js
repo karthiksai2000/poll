@@ -79,7 +79,8 @@
 //   res.json({ message: `Student with id=${id} deleted successfully` });
 // });
 
-// module.exports = router;const express = require('express');
+// module.exports = router;
+const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const router = express.Router();
