@@ -22,7 +22,7 @@
     }
 
     li {
-      margin: 4px 0;
+      margin: 6px 0;
       padding: 8px;
       background: #f9f9f9;
       border: 1px solid #ddd;
@@ -33,30 +33,7 @@
     }
 
     li span {
-      flex-grow: 1;
-    }
-
-    button {
-      margin-left: 6px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      padding: 6px 10px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 0.9em;
-    }
-
-    button:hover {
-      background-color: #0056b3;
-    }
-
-    .delete-btn {
-      background-color: #dc3545;
-    }
-
-    .delete-btn:hover {
-      background-color: #b02a37;
+      flex: 1;
     }
 
     form div {
@@ -79,14 +56,38 @@
       font-size: 0.9em;
       margin-top: 2px;
     }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 5px;
+      font-size: 0.9em;
+    }
+
+    button.delete {
+      background-color: #dc3545;
+    }
+
+    button.update {
+      background-color: #28a745;
+    }
+
+    button:hover {
+      opacity: 0.85;
+    }
   </style>
 </head>
 <body>
   <h1>Products List</h1>
   <ul id="product-list"></ul>
 
-  <h2>Add Product</h2>
+  <h2>Add / Update Product</h2>
   <form id="productForm" novalidate>
+    <input type="hidden" id="productId" />
     <div>
       <input type="text" id="name" placeholder="Product Name" required />
       <div id="name-error" class="error-message"></div>
@@ -95,12 +96,13 @@
       <input type="number" id="price" placeholder="Price" required min="1" />
       <div id="price-error" class="error-message"></div>
     </div>
-    <button type="submit">Add Product</button>
+    <button type="submit" id="submitButton">Add Product</button>
   </form>
 
   <script>
-    const API_URL = '/products';
+    const API_URL = 'http://localhost:3000/products';
 
+    // Fetch and display products
     async function fetchProducts() {
       try {
         const response = await fetch(API_URL);
@@ -114,19 +116,18 @@
           span.textContent = `ID: ${product.id}, Name: ${product.name}, Price: ₹${product.price}`;
           li.appendChild(span);
 
-          // Edit button
-          const editBtn = document.createElement('button');
-          editBtn.textContent = 'Edit';
-          editBtn.addEventListener('click', () => editProduct(product));
-          li.appendChild(editBtn);
+          const updateBtn = document.createElement('button');
+          updateBtn.textContent = 'Update';
+          updateBtn.classList.add('update');
+          updateBtn.onclick = () => populateForm(product);
 
-          // Delete button
           const deleteBtn = document.createElement('button');
           deleteBtn.textContent = 'Delete';
-          deleteBtn.classList.add('delete-btn');
-          deleteBtn.addEventListener('click', () => deleteProduct(product.id));
-          li.appendChild(deleteBtn);
+          deleteBtn.classList.add('delete');
+          deleteBtn.onclick = () => deleteProduct(product.id);
 
+          li.appendChild(updateBtn);
+          li.appendChild(deleteBtn);
           productList.appendChild(li);
         });
       } catch (error) {
@@ -134,101 +135,95 @@
       }
     }
 
-    function validateField(input, errorDiv, customValidationFn = null) {
+    // Populate form for update
+    function populateForm(product) {
+      document.getElementById('productId').value = product.id;
+      document.getElementById('name').value = product.name;
+      document.getElementById('price').value = product.price;
+      document.getElementById('submitButton').textContent = 'Update Product';
+    }
+
+    // Validate field
+    function validateField(input, errorDiv) {
       errorDiv.textContent = '';
       if (!input.value.trim()) {
         errorDiv.textContent = `${input.placeholder} is required.`;
         return false;
       }
-      if (customValidationFn) {
-        const errMsg = customValidationFn(input.value);
-        if (errMsg) {
-          errorDiv.textContent = errMsg;
-          return false;
-        }
+      if (input.type === 'number' && Number(input.value) <= 0) {
+        errorDiv.textContent = 'Price must be a positive number.';
+        return false;
       }
       return true;
     }
 
+    // Form submission
+    document.getElementById('productForm').addEventListener('submit', async function(event) {
+      event.preventDefault();
+
+      const idInput = document.getElementById('productId');
+      const nameInput = document.getElementById('name');
+      const priceInput = document.getElementById('price');
+      const nameError = document.getElementById('name-error');
+      const priceError = document.getElementById('price-error');
+
+      const validName = validateField(nameInput, nameError);
+      const validPrice = validateField(priceInput, priceError);
+      if (!validName || !validPrice) return;
+
+      const productData = {
+        name: nameInput.value.trim(),
+        price: Number(priceInput.value)
+      };
+
+      try {
+        let response;
+        if (idInput.value) {
+          // Update product
+          response = await fetch(`${API_URL}/${idInput.value}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(productData)
+          });
+        } else {
+          // Add new product
+          response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(productData)
+          });
+        }
+
+        if (response.ok) {
+          alert(idInput.value ? 'Product updated successfully!' : 'Product added successfully!');
+          this.reset();
+          idInput.value = '';
+          document.getElementById('submitButton').textContent = 'Add Product';
+          fetchProducts();
+        } else {
+          alert('Failed to save product.');
+        }
+      } catch (error) {
+        console.error('Error saving product:', error);
+      }
+    });
+
+    // Delete product
     async function deleteProduct(id) {
       if (!confirm('Are you sure you want to delete this product?')) return;
+
       try {
         const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-        if (response.ok) fetchProducts();
-        else alert('Failed to delete product');
+        if (response.ok) {
+          alert('Product deleted successfully!');
+          fetchProducts();
+        } else {
+          alert('Failed to delete product.');
+        }
       } catch (error) {
         console.error('Error deleting product:', error);
       }
     }
-
-    function editProduct(product) {
-      const nameInput = document.getElementById('name');
-      const priceInput = document.getElementById('price');
-      nameInput.value = product.name;
-      priceInput.value = product.price;
-
-      const form = document.getElementById('productForm');
-      form.onsubmit = async function (event) {
-        event.preventDefault();
-        const validName = validateField(nameInput, document.getElementById('name-error'));
-        const validPrice = validateField(priceInput, document.getElementById('price-error'), value => {
-          if (isNaN(value) || Number(value) <= 0) return 'Price must be positive';
-          return null;
-        });
-        if (!validName || !validPrice) return;
-
-        const updatedProduct = { name: nameInput.value.trim(), price: Number(priceInput.value) };
-        try {
-          const response = await fetch(`${API_URL}/${product.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updatedProduct)
-          });
-          if (response.ok) {
-            alert('Product updated successfully!');
-            form.reset();
-            form.onsubmit = addProductHandler; // Reset form submit
-            fetchProducts();
-          } else {
-            alert('Failed to update product');
-          }
-        } catch (error) {
-          console.error('Error updating product:', error);
-        }
-      };
-    }
-
-    const addProductHandler = async function (event) {
-      event.preventDefault();
-      const nameInput = document.getElementById('name');
-      const priceInput = document.getElementById('price');
-      const validName = validateField(nameInput, document.getElementById('name-error'));
-      const validPrice = validateField(priceInput, document.getElementById('price-error'), value => {
-        if (isNaN(value) || Number(value) <= 0) return 'Price must be positive';
-        return null;
-      });
-      if (!validName || !validPrice) return;
-
-      const newProduct = { name: nameInput.value.trim(), price: Number(priceInput.value) };
-      try {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newProduct)
-        });
-        if (response.ok) {
-          alert('Product added successfully!');
-          this.reset();
-          fetchProducts();
-        } else {
-          alert('Failed to add product');
-        }
-      } catch (error) {
-        console.error('Error adding product:', error);
-      }
-    };
-
-    document.getElementById('productForm').addEventListener('submit', addProductHandler);
 
     fetchProducts();
   </script>
